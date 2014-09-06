@@ -23,13 +23,23 @@ The rf24totun_configAndPing.sh script shows hot to configure and set up the TUN/
  
 # Install
 
-make
-sudo make install
+    make
+    sudo make install
 
 # Running 
 
-  sudo rf24totun
-    OR
-  sudo ./rf24totun_configAndPing.sh 1 2   #On node1
-  sudo ./rf24totun_configAndPing.sh 2 1   #On node2
+    sudo rf24totun
+    
+OR
+    
+    sudo ./rf24totun_configAndPing.sh 1 2   #On node1
+    sudo ./rf24totun_configAndPing.sh 2 1   #On node2
 
+
+# Licence
+
+The MIT License (MIT)
+
+Copyright (c) 2014 Rei <devel@reixd.net>
+
+See the appended file for more information.
