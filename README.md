@@ -22,7 +22,11 @@ The rf24totun_configAndPing.sh script shows hot to configure and set up the TUN/
  * C++ Boost libs
  
 # Install
-
+    
+    ***Boost Libs:***      
+    sudo apt-get install libboost1.50-all  
+    
+	***RF24toTUN***
     make
     sudo make install
 
