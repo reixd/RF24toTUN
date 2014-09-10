@@ -181,7 +181,7 @@ void radioRxTxThreadFunction() {
             bool ok = network.write(header,msg.getPayload(),msg.getLength());
 
             if (ok) {
-                std::cout << "ok." << std::endl;
+                //std::cout << "ok." << std::endl;
             } else {
                 std::cerr << "failed." << std::endl;
             }
@@ -379,7 +379,7 @@ int main(int argc, char **argv) {
     std::cout << "\n ************ Address Setup ***********\n";
     std::string input = "";
     char myChar = {0};
-    std::cout << "Choose an address: Enter 0 for master, 1 for child (CTRL+C to exit) \n>";
+    std::cout << "Choose an address: Enter 0 for master, 1 for child, 2 for Master with 1 Arduino routing node (02), 3 for Child with Arduino routing node  (CTRL+C to exit) \n>";
     std::getline(std::cin,input);
 
     if(input.length() == 1) {
@@ -389,6 +389,12 @@ int main(int argc, char **argv) {
             otherNodeAddr = 01;
         }else if(myChar == '1') {
             thisNodeAddr = 01;
+            otherNodeAddr = 00;
+		}else if(myChar == '2') {
+            thisNodeAddr = 00;
+            otherNodeAddr = 012;
+		}else if(myChar == '3') {
+            thisNodeAddr = 012;
             otherNodeAddr = 00;
         } else {
             std::cout << "Wrong address! Choose 0 or 1." << std::endl;

@@ -60,6 +60,10 @@
 
 #define PRINT_DEBUG 1
 
+#ifndef IFF_MULTI_QUEUE
+	#define IFF_MULTI_QUEUE 0x0100
+#endif
+
 #define MAX_TUN_BUF_SIZE (10 * 1024) // should be enough for now
 
 #ifndef MAX_FRAME_SIZE
