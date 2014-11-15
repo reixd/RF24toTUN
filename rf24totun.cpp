@@ -137,9 +137,8 @@ void radioRxTxThreadFunction() {
 
         network.update();
 
-        /**
-         * RX section
-         */
+         //RX section
+         
         while ( network.available() ) { // Is there anything ready for us?
 
             RF24NetworkHeader header;        // If so, grab it and print it out
@@ -163,10 +162,10 @@ void radioRxTxThreadFunction() {
 
         network.update();
 
-        /**
-         * TX section
-         */
-        if (!radioTxQueue.empty()) {
+
+         // TX section
+        
+        if(!radioTxQueue.empty() && !radio.available() ) {
             Message msg = radioTxQueue.pop();
 
             if (PRINT_DEBUG >= 1) {
@@ -187,7 +186,7 @@ void radioRxTxThreadFunction() {
             }
         } //End Tx
 
-        delay(2);
+		delay(1);
 
     } catch(boost::thread_interrupted&) {
         std::cerr << "radioRxThreadFunction is stopped" << std::endl;
@@ -266,7 +265,7 @@ void tunTxThreadFunction() {
         if (msg.getLength() > 0) {
 
             size_t writtenBytes = write(tunFd, msg.getPayload(), msg.getLength());
-
+			if(!writtenBytes){  writtenBytes = write(tunFd, msg.getPayload(), msg.getLength()); }
             if (writtenBytes != msg.getLength()) {
                 std::cerr << "Tun: Less bytes written to tun/tap device then requested." << std::endl;
             } else {
@@ -382,13 +381,13 @@ int main(int argc, char **argv) {
     std::cout << "Choose an address: Enter 0 for master, 1 for child, 2 for Master with 1 Arduino routing node (02), 3 for Child with Arduino routing node  (CTRL+C to exit) \n>";
     std::getline(std::cin,input);
 
-    if(input.length() == 1) {
+    if(input.length() > 0) {
         myChar = input[0];
         if(myChar == '0'){
             thisNodeAddr = 00;
-            otherNodeAddr = 01;
+            otherNodeAddr = 1;
         }else if(myChar == '1') {
-            thisNodeAddr = 01;
+            thisNodeAddr = 1;
             otherNodeAddr = 00;
 		}else if(myChar == '2') {
             thisNodeAddr = 00;
