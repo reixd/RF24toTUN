@@ -177,7 +177,7 @@ void radioRxTxThreadFunction() {
                 printPayload(msg.getPayloadStr(),"radio TX");
             }
             const uint16_t other_node = otherNodeAddr;
-            RF24NetworkHeader header(/*to node*/ other_node);
+            RF24NetworkHeader header(/*to node*/ other_node, EXTERNAL_DATA_TYPE);
             bool ok = network.write(header,msg.getPayload(),msg.getLength());
 
             if (ok) {
