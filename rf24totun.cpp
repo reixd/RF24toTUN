@@ -55,7 +55,8 @@ int configureAndSetUpTunDevice() {
     std::string tunTapDevice = "tun_nrf24";
     strcpy(tunName, tunTapDevice.c_str());
 
-    int flags = IFF_TUN | IFF_NO_PI | IFF_MULTI_QUEUE;
+    //int flags = IFF_TUN | IFF_NO_PI | IFF_MULTI_QUEUE;
+	int flags = IFF_TAP | IFF_NO_PI;// | IFF_MULTI_QUEUE;
     tunFd = allocateTunDevice(tunName, flags);
     if (tunFd >= 0) {
         std::cout << "Successfully attached to tun/tap device " << tunTapDevice << std::endl;
@@ -165,7 +166,7 @@ void radioRxTxThreadFunction() {
 
          // TX section
         
-        if(!radioTxQueue.empty() && !radio.available() ) {
+        while(!radioTxQueue.empty() && !radio.available() ) {
             Message msg = radioTxQueue.pop();
 
             if (PRINT_DEBUG >= 1) {
@@ -185,8 +186,6 @@ void radioRxTxThreadFunction() {
                 std::cerr << "failed." << std::endl;
             }
         } //End Tx
-
-		delay(1);
 
     } catch(boost::thread_interrupted&) {
         std::cerr << "radioRxThreadFunction is stopped" << std::endl;
@@ -235,7 +234,11 @@ void tunRxThreadFunction() {
                     msg.setPayload(buffer,nread);
 
                     // send downwards
-                    radioTxQueue.push(msg);
+					if(radioTxQueue.size() < 3){
+						radioTxQueue.push(msg);
+					}else{
+					  //std::cout << "Tun Drop" << std::endl;
+					}
 
                 } else
                     std::cerr << "Tun: Error while reading from tun/tap interface." << std::endl;
