@@ -64,8 +64,8 @@ class Message {
     * Get the payload of the message as a char array
     * @return the payload as a c-string
     */
-    const char* getPayload() {
-        const char* res = payload_.data();
+    uint8_t* getPayload() {
+        uint8_t* res = payload_.data();
         return res;
     };
 
@@ -82,14 +82,14 @@ class Message {
     * @param buffer char array as the payload
     * @param bsize size of the buffer
     */
-    void setPayload(char * buffer, std::size_t bsize) {
+    void setPayload(uint8_t * buffer, std::size_t bsize) {
         payload_.clear();
         payload_.assign(buffer, buffer + bsize);
         length_ = payload_.size();
     };
 
   private:
-    std::vector<char> payload_;  /**< Internal vector data structure to save the payload*/
+    std::vector<uint8_t> payload_;  /**< Internal vector data structure to save the payload*/
     std::size_t length_;  /**< Current length of the payload */
     uint8_t seqNo_;  /**< Sequence number */
 

@@ -58,7 +58,7 @@
 #include <RF24Network/RF24Network.h>
 
 
-#define PRINT_DEBUG 1
+#define PRINT_DEBUG 0
 
 #ifndef IFF_MULTI_QUEUE
 	#define IFF_MULTI_QUEUE 0x0100
@@ -81,7 +81,7 @@ RF24 radio(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
 RF24Network network(radio);
 uint16_t thisNodeAddr; /**< Address of our node in Octal format (01,021, etc) */
 uint16_t otherNodeAddr;     /**< Address of the other node */
-const uint8_t channel = 90;
+const uint8_t channel = 97;
 unsigned long packets_sent;  /**< How many have we sent already */
 
 /**

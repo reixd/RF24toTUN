@@ -33,4 +33,9 @@ public:
   bool empty() {
     return q_.empty();
   }
+  
+  size_t size() {
+    return q_.size();
+  }
+  
 };

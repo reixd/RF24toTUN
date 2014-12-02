@@ -55,7 +55,8 @@ int configureAndSetUpTunDevice() {
     std::string tunTapDevice = "tun_nrf24";
     strcpy(tunName, tunTapDevice.c_str());
 
-    int flags = IFF_TUN | IFF_NO_PI | IFF_MULTI_QUEUE;
+    //int flags = IFF_TUN | IFF_NO_PI | IFF_MULTI_QUEUE;
+	int flags = IFF_TAP | IFF_NO_PI;// | IFF_MULTI_QUEUE;
     tunFd = allocateTunDevice(tunName, flags);
     if (tunFd >= 0) {
         std::cout << "Successfully attached to tun/tap device " << tunTapDevice << std::endl;
@@ -137,14 +138,13 @@ void radioRxTxThreadFunction() {
 
         network.update();
 
-        /**
-         * RX section
-         */
+         //RX section
+         
         while ( network.available() ) { // Is there anything ready for us?
 
             RF24NetworkHeader header;        // If so, grab it and print it out
             Message msg;
-            char buffer[MAX_PAYLOAD_SIZE];
+            uint8_t buffer[MAX_PAYLOAD_SIZE];
 
             unsigned int bytesRead = network.read(header,buffer,MAX_PAYLOAD_SIZE);
             if (bytesRead > 0) {
@@ -163,10 +163,10 @@ void radioRxTxThreadFunction() {
 
         network.update();
 
-        /**
-         * TX section
-         */
-        if (!radioTxQueue.empty()) {
+
+         // TX section
+        
+        while(!radioTxQueue.empty() && !radio.available() ) {
             Message msg = radioTxQueue.pop();
 
             if (PRINT_DEBUG >= 1) {
@@ -176,18 +176,63 @@ void radioRxTxThreadFunction() {
                 std::cout << std::endl; //PrintDebug == 1 does not have an endline.
                 printPayload(msg.getPayloadStr(),"radio TX");
             }
-            const uint16_t other_node = otherNodeAddr;
-            RF24NetworkHeader header(/*to node*/ other_node);
-            bool ok = network.write(header,msg.getPayload(),msg.getLength());
+			
+			uint8_t *tmp = msg.getPayload();
+			/*printf("********WRITING************\n");
+			for(int i=0; i<8; i++){
+				//std::cout << std::hex << buffer[i] <<std::endl;
+				//printf("%#x\n",(uint8_t)buffer[i]);
+				//uint32_t tmp2 = 0;
+				//tmp2 |= (uint32_t)tmp;
+				//printf("%01x\n",tmp2);
+				printf("0%#x\n",tmp[i]);
+				//tmp++;
+			}*/
+			
+			tmp = msg.getPayload();
+			
+			uint32_t RF24_STR = 0x34324652; //Identifies the mac as an RF24 mac
+			uint32_t ARP_BC = 0xFFFFFFFF;   //Broadcast address
+			struct macStruct{
+				uint16_t rf24_Addr;
+				uint32_t rf24_Verification;								
+			};
+			
+			//struct serialip_state *s = &(uip_conn->appstate);//Creates a pointer to the application state of the current connection, which can be used to terminate it?
+			
+			macStruct macData;
+			//memcpy(&macData,tmp,sizeof(macData));
+			memcpy(&macData.rf24_Addr,tmp,2);
+			memcpy(&macData.rf24_Verification,tmp+2,4);
+            //const uint16_t other_node = otherNodeAddr;
+			
+			bool ok = 0;
+			if(macData.rf24_Verification == RF24_STR){
+				const uint16_t other_node = macData.rf24_Addr;			
+				RF24NetworkHeader header(/*to node*/ other_node, EXTERNAL_DATA_TYPE);
+				ok = network.write(header,msg.getPayload(),msg.getLength());
+				printf("*************W1\n");
+			}else
+			if(macData.rf24_Verification == ARP_BC){
+				const uint16_t other_node = otherNodeAddr;			
+				RF24NetworkHeader header(/*to node*/ 00, EXTERNAL_DATA_TYPE); //Set to master node, will be modified by RF24Network if multi-casting
+				
+				if(thisNodeAddr == 00){ //Master Node
+					ok = network.multicast(header,msg.getPayload(),msg.getLength(),1 ); //Send to Level 1
+				}else{
+					ok = network.write(header,msg.getPayload(),msg.getLength());
+				}
+				printf("*****************W2\n");
+			}
 
+			printf("Addr: 0%#x\n",macData.rf24_Addr);
+			printf("Verif: 0%#x\n",macData.rf24_Verification);
             if (ok) {
-                //std::cout << "ok." << std::endl;
+                std::cout << "ok." << std::endl;
             } else {
                 std::cerr << "failed." << std::endl;
             }
         } //End Tx
-
-        delay(2);
 
     } catch(boost::thread_interrupted&) {
         std::cerr << "radioRxThreadFunction is stopped" << std::endl;
@@ -205,7 +250,7 @@ void tunRxThreadFunction() {
 
     fd_set socketSet;
     struct timeval selectTimeout;
-    char buffer[MAX_TUN_BUF_SIZE];
+    uint8_t buffer[MAX_TUN_BUF_SIZE];
     int nread;
 
     while(1) {
@@ -228,15 +273,24 @@ void tunRxThreadFunction() {
                         std::cout << "Tun: Successfully read " << nread  << " bytes from tun device" << std::endl;
                     }
                     if (PRINT_DEBUG >= 3) {
-                        printPayload(std::string(buffer, nread),"Tun read");
+                        //printPayload(std::string(buffer, nread),"Tun read");
                     }
+					
+					/*for(int i=0; i<nread; i++){
+						//std::cout << std::hex << buffer[i] <<std::endl;
+						printf("%#x\n",(uint8_t)buffer[i]);
+					}*/
 
                     // copy received data into new Message
                     Message msg;
                     msg.setPayload(buffer,nread);
 
                     // send downwards
-                    radioTxQueue.push(msg);
+					if(radioTxQueue.size() < 3){
+						radioTxQueue.push(msg);
+					}else{
+					  //std::cout << "Tun Drop" << std::endl;
+					}
 
                 } else
                     std::cerr << "Tun: Error while reading from tun/tap interface." << std::endl;
@@ -266,7 +320,7 @@ void tunTxThreadFunction() {
         if (msg.getLength() > 0) {
 
             size_t writtenBytes = write(tunFd, msg.getPayload(), msg.getLength());
-
+			if(!writtenBytes){  writtenBytes = write(tunFd, msg.getPayload(), msg.getLength()); }
             if (writtenBytes != msg.getLength()) {
                 std::cerr << "Tun: Less bytes written to tun/tap device then requested." << std::endl;
             } else {
@@ -382,13 +436,13 @@ int main(int argc, char **argv) {
     std::cout << "Choose an address: Enter 0 for master, 1 for child, 2 for Master with 1 Arduino routing node (02), 3 for Child with Arduino routing node  (CTRL+C to exit) \n>";
     std::getline(std::cin,input);
 
-    if(input.length() == 1) {
+    if(input.length() > 0) {
         myChar = input[0];
         if(myChar == '0'){
             thisNodeAddr = 00;
-            otherNodeAddr = 01;
+            otherNodeAddr = 1;
         }else if(myChar == '1') {
-            thisNodeAddr = 01;
+            thisNodeAddr = 1;
             otherNodeAddr = 00;
 		}else if(myChar == '2') {
             thisNodeAddr = 00;
